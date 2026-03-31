@@ -487,11 +487,13 @@ async function loadVocab() {
     const res = await fetch(API_URL);
     const rows = await res.json();
     vocab = rows.map(r => ({
-      word: String(r.word || '').trim(),
-      pos: String(r.pos || '').trim(),
-      definition: String(r.definition || '').trim(),
-      example: String(r.example || '').trim(),
-      repeat: parseInt(r.repeat) || 1,
+      word: String(r['單字'] || '').trim(),
+      phonetic: String(r['音標'] || '').trim(),
+      pos: String(r['詞性'] || '').trim(),
+      definition: String(r['中文'] || '').trim(),
+      example: String(r['例句'] || '').trim(),
+      derivative: String(r['衍生字'] || '').trim(),
+      repeat: parseInt(r['Repeat']) || 1,
     })).filter(r => r.word);
     updateStats();
     document.getElementById('word-count-header').textContent = vocab.length + ' words';
@@ -548,16 +550,19 @@ function wordCardHTML(v) {
   <div class="word-card">
     <div class="word-top">
       <span class="word-main">${v.word}</span>
+      ${v.phonetic ? `<span style="font-size:0.9rem;color:var(--ink-faint);font-family:'DM Mono',monospace">${v.phonetic}</span>` : ''}
       ${v.pos ? `<span class="badge badge-pos">${v.pos}</span>` : ''}
       ${repeatBadge}
       <div class="word-actions">
         <button class="speak-btn" onclick="speak('${v.word.replace(/'/g,"\\'")}')">▶ 發音</button>
       </div>
     </div>
-    <div class="field-label">Definition 解釋</div>
+    <div class="field-label">中文解釋</div>
     <div class="field-def">${v.definition}</div>
-    ${v.example ? `<div class="field-label">Your Example 你的例句</div>
+    ${v.example ? `<div class="field-label">例句</div>
     <div class="example-box">${v.example}</div>` : ''}
+    ${v.derivative ? `<div class="field-label" style="margin-top:10px">衍生字</div>
+    <div style="font-size:0.88rem;color:var(--ink-light);margin-top:4px">${v.derivative}</div>` : ''}
   </div>`;
 }
 
@@ -615,7 +620,7 @@ function renderReview() {
     <div class="review-item">
       <div>
         <div class="review-word">${v.word}</div>
-        <div class="review-def">${v.definition}</div>
+        <div class="review-def">${v.definition}${v.phonetic ? ' ' + v.phonetic : ''}</div>
       </div>
       <div class="review-right">
         <span class="badge badge-repeat">×${v.repeat}</span>
@@ -647,9 +652,10 @@ function startQuiz() {
       <button class="speak-btn" onclick="speak('${quizWord.word.replace(/'/g,"\\'")}')">▶ 發音</button>
     </div>
     <div class="quiz-answer" id="quiz-answer">
-      <div class="field-label" style="margin-bottom:6px">解釋</div>
+      <div class="field-label" style="margin-bottom:6px">中文解釋</div>
       <div style="font-size:1rem;margin-bottom:10px">${quizWord.definition}</div>
-      ${quizWord.example ? `<div class="field-label" style="margin-bottom:6px">你的例句</div>
+      ${quizWord.phonetic ? `<div style="font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--ink-faint);margin-bottom:10px">${quizWord.phonetic}</div>` : ''}
+      ${quizWord.example ? `<div class="field-label" style="margin-bottom:6px">例句</div>
       <div style="font-family:'Lora',serif;font-style:italic;font-size:0.92rem;color:var(--ink-light)">${quizWord.example}</div>` : ''}
     </div>
     <div class="quiz-controls">
