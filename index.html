@@ -159,41 +159,77 @@ function switchTab(name){
   if(name==='review')renderReview();
   if(name==='quiz')resetQuiz();
 }
-// 選出最好的英文聲音
-function getBestVoice(){
-  var voices = window.speechSynthesis.getVoices();
-  // 優先順序：Google > Microsoft > Samantha (macOS) > 其他 en-US
-  var preferred = [
-    'Google US English',
-    'Microsoft Aria Online (Natural) - English (United States)',
-    'Microsoft Guy Online (Natural) - English (United States)',
-    'Samantha',
-    'Alex',
-  ];
-  for(var i=0;i<preferred.length;i++){
-    for(var j=0;j<voices.length;j++){
-      if(voices[j].name===preferred[i]) return voices[j];
+// 發音：優先用 Free Dictionary API 的真人錄音，失敗才用合成語音
+var audioCache = {};
+var currentAudio = null;
+
+async function speak(word){
+  // 停止目前播放
+  if(currentAudio){
+    currentAudio.pause();
+    currentAudio.currentTime=0;
+    currentAudio=null;
+  }
+  window.speechSynthesis.cancel();
+
+  var w = word.toLowerCase().trim();
+
+  // 已快取
+  if(audioCache[w]){
+    if(audioCache[w]==='tts') { fallbackSpeak(word); return; }
+    playAudioUrl(audioCache[w], word);
+    return;
+  }
+
+  // 查 Free Dictionary API 取真人錄音 URL
+  try{
+    var res = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(w));
+    if(res.ok){
+      var data = await res.json();
+      var audioUrl = null;
+      // 找第一個有效的音檔 URL
+      if(data[0] && data[0].phonetics){
+        for(var i=0;i<data[0].phonetics.length;i++){
+          var p = data[0].phonetics[i];
+          if(p.audio && p.audio.length>0){
+            audioUrl = p.audio.startsWith('http') ? p.audio : 'https:'+p.audio;
+            break;
+          }
+        }
+      }
+      if(audioUrl){
+        audioCache[w] = audioUrl;
+        playAudioUrl(audioUrl, word);
+        return;
+      }
     }
-  }
-  // fallback: 任何 en-US
-  for(var j=0;j<voices.length;j++){
-    if(voices[j].lang==='en-US') return voices[j];
-  }
-  return null;
+  }catch(e){}
+
+  // 找不到真人錄音，改用合成語音
+  audioCache[w] = 'tts';
+  fallbackSpeak(word);
 }
 
-function speak(word){
-  window.speechSynthesis.cancel();
-  setTimeout(function(){
-    var u = new SpeechSynthesisUtterance(word);
-    u.lang = 'en-US';
-    u.rate = 0.82;
-    u.pitch = 1.0;
-    u.volume = 1.0;
-    var voice = getBestVoice();
-    if(voice) u.voice = voice;
-    window.speechSynthesis.speak(u);
-  }, 100);
+function playAudioUrl(url, word){
+  var audio = new Audio(url);
+  currentAudio = audio;
+  audio.playbackRate = 0.9;
+  audio.play().catch(function(){
+    // 播放失敗改合成語音
+    fallbackSpeak(word);
+  });
+}
+
+function fallbackSpeak(word){
+  var u = new SpeechSynthesisUtterance(word);
+  u.lang='en-US'; u.rate=0.85;
+  var voices = window.speechSynthesis.getVoices();
+  for(var i=0;i<voices.length;i++){
+    if(voices[i].name==='Samantha'||voices[i].name==='Google US English'){
+      u.voice=voices[i]; break;
+    }
+  }
+  window.speechSynthesis.speak(u);
 }
 function doSearch(){
   var q=document.getElementById('search-input').value.trim().toLowerCase();
