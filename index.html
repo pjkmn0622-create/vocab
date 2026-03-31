@@ -160,9 +160,12 @@ function switchTab(name){
   if(name==='quiz')resetQuiz();
 }
 function speak(word){
-  var u=new SpeechSynthesisUtterance(word);
-  u.lang='en-US';u.rate=0.9;
-  window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+  window.speechSynthesis.cancel();
+  setTimeout(function(){
+    var u=new SpeechSynthesisUtterance(word);
+    u.lang='en-US';u.rate=0.85;u.pitch=1;u.volume=1;
+    window.speechSynthesis.speak(u);
+  },150);
 }
 function doSearch(){
   var q=document.getElementById('search-input').value.trim().toLowerCase();
@@ -286,8 +289,6 @@ function findTypoMatch(inp){
   var best=null,bestD=999;
   for(var i=0;i<vocab.length;i++){
     var vL=vocab[i].word.toLowerCase();
-    // 首字母必須相同，才考慮校正
-    if(vL[0]!==inpL[0])continue;
     var d=levenshtein(inpL,vL);
     if(d>0&&d<=maxDist&&d<bestD){bestD=d;best=vocab[i];}
   }
@@ -305,18 +306,17 @@ function findRelated(inp){
   return null;
 }
 
-// 對非真實單字，猜測正確拼法（首字母相同 + Levenshtein）
-function guessCorrection(inp){
-  var inpL=inp.toLowerCase();
-  var maxDist=inpL.length>=8?2:1;
-  var best=null,bestD=999;
-  for(var i=0;i<vocab.length;i++){
-    var vL=vocab[i].word.toLowerCase();
-    if(vL[0]!==inpL[0])continue;
-    var d=levenshtein(inpL,vL);
-    if(d>0&&d<=maxDist&&d<bestD){bestD=d;best=vocab[i];}
-  }
-  return best;
+// 對非真實單字，用 Datamuse 拼字建議找正確拼法
+async function guessCorrection(inp){
+  try{
+    var res=await fetch('https://api.datamuse.com/words?sp='+encodeURIComponent(inp)+'&max=3');
+    var data=await res.json();
+    if(data.length>0){
+      // 取第一個建議（最接近的正確拼法）
+      return data[0].word;
+    }
+  }catch(e){}
+  return null;
 }
 
 async function doBatchCheck(){
@@ -365,9 +365,9 @@ async function doBatchCheck(){
         groups.typo.push({input:inp,vocab:typo.vocab,correctedWord:typo.vocab.word});
       }else{
         // 拼錯 + 筆記沒有 → 猜正確拼法
-        var guess=guessCorrection(inp);
+        var guess=await guessCorrection(inp);
         if(guess){
-          groups['corrected-new'].push({input:inp,correctedWord:guess.word});
+          groups['corrected-new'].push({input:inp,correctedWord:guess});
         }else{
           groups['new'].push({input:inp});
         }
