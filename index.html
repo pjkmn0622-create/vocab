@@ -19,7 +19,7 @@ header h1{font-family:'Lora',serif;font-size:1.4rem;font-weight:600}
 header span{font-family:'DM Mono',monospace;font-size:0.75rem;color:#A8A29E}
 #word-count-header{margin-left:auto;font-family:'DM Mono',monospace;font-size:0.75rem;color:#FDBA74}
 .layout{max-width:860px;margin:0 auto;padding:2rem 1.5rem}
-.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--border);margin-bottom:2rem}
+.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--border);margin-bottom:2rem;flex-wrap:wrap}
 .tab{font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:500;letter-spacing:0.05em;padding:0.6rem 1.1rem;border:none;background:transparent;color:var(--ink-faint);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:color 0.15s,border-color 0.15s;text-transform:uppercase}
 .tab:hover{color:var(--ink)}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -57,7 +57,6 @@ button:hover{background:var(--accent);border-color:var(--accent)}
 .review-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .quiz-card{background:white;border:1px solid var(--border);border-radius:10px;padding:2rem;text-align:center;box-shadow:0 2px 8px var(--shadow);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
 .quiz-word{font-family:'Lora',serif;font-size:2.5rem;font-weight:600;color:var(--ink)}
-.quiz-hint{font-size:0.85rem;color:var(--ink-faint);font-family:'DM Mono',monospace}
 .quiz-answer{background:var(--paper);border-radius:8px;padding:1rem 1.5rem;width:100%;text-align:left;display:none;animation:fadeIn 0.2s ease}
 .quiz-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .stats-bar{display:flex;gap:1.5rem;margin-top:2rem;flex-wrap:wrap}
@@ -66,13 +65,14 @@ button:hover{background:var(--accent);border-color:var(--accent)}
 .stat-label{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-faint)}
 .divider{width:1px;background:var(--border);align-self:stretch}
 .empty{text-align:center;padding:3rem 1rem;color:var(--ink-faint);font-size:0.9rem;line-height:2}
-.loading{text-align:center;padding:3rem;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--ink-faint);letter-spacing:0.05em}
 .batch-found{border-left:3px solid var(--green)}
 .batch-new{border-left:3px solid var(--accent-mid)}
-.batch-section-title{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-faint);margin:1.25rem 0 0.6rem}
+.batch-typo{border-left:3px solid #60A5FA}
+.batch-section-title{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-faint);margin:1.25rem 0 0.6rem;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .batch-word-row{display:flex;align-items:center;gap:10px;padding:0.75rem 1rem;background:white;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
-.bw{font-family:'Lora',serif;font-size:1rem;font-weight:600;min-width:130px}
+.bw{font-family:'Lora',serif;font-size:1rem;font-weight:600;min-width:140px}
 .bd{font-size:0.85rem;color:var(--ink-light);flex:1}
+.typo-arrow{font-size:0.75rem;color:#3B82F6;font-family:'DM Mono',monospace;margin-left:6px}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}.layout{padding:1.25rem 1rem}.quiz-word{font-size:1.8rem}}
 </style>
 </head>
@@ -112,7 +112,7 @@ button:hover{background:var(--accent);border-color:var(--accent)}
     <div class="form-card" style="margin-bottom:1rem">
       <div class="form-row">
         <label>貼上單字清單（逗號、句號、換行都可以，打錯字沒關係）</label>
-        <textarea id="batch-input" style="min-height:120px" placeholder="例如：frontal. plane. virtually. imaginary&#10;或直接貼一整段文字"></textarea>
+        <textarea id="batch-input" style="min-height:120px" placeholder="frontal. plane. virtually. imaginary&#10;或直接貼一整段文字都可以"></textarea>
       </div>
       <button onclick="doBatchCheck()" style="width:100%">批次檢查 Check All</button>
     </div>
@@ -136,28 +136,29 @@ button:hover{background:var(--accent);border-color:var(--accent)}
   </div>
 
   <div id="panel-review" class="panel">
-    <div id="review-list"><div class="loading">載入中</div></div>
+    <div id="review-list"><div class="empty">載入中...</div></div>
   </div>
 
   <div id="panel-quiz" class="panel">
     <div class="quiz-card" id="quiz-card">
-      <div class="quiz-hint">按下開始，隨機抽一個單字測驗你</div>
+      <div style="font-size:0.85rem;color:var(--ink-faint);font-family:'DM Mono',monospace">按下開始，隨機抽一個單字測驗你</div>
       <button onclick="startQuiz()">開始測驗 Start Quiz</button>
     </div>
   </div>
 </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbzm56Uj1d_SakjWR0rYT8wVMZQ5KCOlUESv5pPT9HuZ4y0Ap352jpC21HdhPZu0nFw/exec';
-let vocab = [];
-let quizWord = null;
+var API_URL = 'https://script.google.com/macros/s/AKfycby4tpeaI7nGnYYf74hxU9j9esMIRbBt2Lguz5gKw3b5YKd2InLS3ikeywNlfZtytuM/exec';
+var vocab = [];
+var quizWord = null;
 
 function switchTab(name) {
-  const names = ['search','batch','add','review','quiz'];
-  names.forEach(function(n) {
+  var names = ['search','batch','add','review','quiz'];
+  for (var i = 0; i < names.length; i++) {
+    var n = names[i];
     document.getElementById('tab-' + n).classList.toggle('active', n === name);
     document.getElementById('panel-' + n).classList.toggle('active', n === name);
-  });
+  }
   if (name === 'review') renderReview();
   if (name === 'quiz') resetQuiz();
 }
@@ -173,7 +174,7 @@ function doSearch() {
   var q = document.getElementById('search-input').value.trim().toLowerCase();
   var el = document.getElementById('search-result');
   if (!q) { el.innerHTML = ''; return; }
-  var results = vocab.filter(function(v){ return v.word.toLowerCase().includes(q); });
+  var results = vocab.filter(function(v) { return v.word.toLowerCase().includes(q); });
   if (!results.length) {
     el.innerHTML = '<div class="empty">找不到「' + q + '」<br>可以到「新增」把它加進筆記</div>';
     return;
@@ -185,13 +186,14 @@ function wordCardHTML(v) {
   var repeatBadge = v.repeat > 1 ? '<span class="badge badge-repeat">重複 ' + v.repeat + ' 次</span>' : '';
   var phonetic = v.phonetic ? '<span style="font-size:0.9rem;color:var(--ink-faint);font-family:\'DM Mono\',monospace">' + v.phonetic + '</span>' : '';
   var derivative = v.derivative ? '<div class="field-label" style="margin-top:10px">衍生字</div><div style="font-size:0.88rem;color:var(--ink-light);margin-top:4px">' + v.derivative + '</div>' : '';
+  var safeWord = v.word.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   return '<div class="word-card">' +
     '<div class="word-top">' +
       '<span class="word-main">' + v.word + '</span>' +
       phonetic +
       (v.pos ? '<span class="badge badge-pos">' + v.pos + '</span>' : '') +
       repeatBadge +
-      '<div class="word-actions"><button class="speak-btn" onclick="speak(\'' + v.word.replace(/'/g, "\\'") + '\')">▶ 發音</button></div>' +
+      '<div class="word-actions"><button class="speak-btn" onclick="speak(\'' + safeWord + '\')">▶ 發音</button></div>' +
     '</div>' +
     '<div class="field-label">中文解釋</div>' +
     '<div class="field-def">' + v.definition + '</div>' +
@@ -208,13 +210,16 @@ function addWord() {
   var msg = document.getElementById('add-msg');
   if (!word) { showMsg(msg, '請輸入單字', 'warn'); return; }
   if (!def) { showMsg(msg, '請輸入解釋', 'warn'); return; }
-  var existing = vocab.find(function(v){ return v.word.toLowerCase() === word.toLowerCase(); });
+  var existing = null;
+  for (var i = 0; i < vocab.length; i++) {
+    if (vocab[i].word.toLowerCase() === word.toLowerCase()) { existing = vocab[i]; break; }
+  }
   if (existing) {
     existing.repeat += 1;
     showMsg(msg, '⚠ 「' + word + '」你之前已經記過了！\n請到 Google Sheets 將 Repeat 欄位更新為 ' + existing.repeat, 'warn');
     return;
   }
-  vocab.push({word:word, pos:pos, definition:def, example:example, phonetic:'', derivative:'', repeat:1});
+  vocab.push({word:word,pos:pos,definition:def,example:example,phonetic:'',derivative:'',repeat:1});
   showMsg(msg, '✓ 「' + word + '」已暫存！\n請到 Google Sheets 新增這筆資料後重新整理。', 'ok');
   updateStats();
   document.getElementById('new-word').value = '';
@@ -239,36 +244,43 @@ function renderReview() {
   var list = vocab.filter(function(v){ return v.repeat > 1; }).sort(function(a,b){ return b.repeat - a.repeat; });
   var el = document.getElementById('review-list');
   if (!list.length) { el.innerHTML = '<div class="empty">目前沒有重複記錄的單字，繼續加油！</div>'; return; }
-  el.innerHTML = '<div class="batch-section-title">' + list.length + ' words need review</div>' +
-    list.map(function(v){
-      return '<div class="review-item">' +
-        '<div><div class="review-word">' + v.word + '</div><div class="review-def">' + v.definition + '</div></div>' +
-        '<div class="review-right"><span class="badge badge-repeat">×' + v.repeat + '</span>' +
-        '<button class="speak-btn" onclick="speak(\'' + v.word.replace(/'/g,"\\'") + '\')">▶</button></div>' +
-        '</div>';
-    }).join('');
+  var html = '<div class="batch-section-title">' + list.length + ' words need review</div>';
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i];
+    var safeWord = v.word.replace(/'/g,"\\'");
+    html += '<div class="review-item">' +
+      '<div><div class="review-word">' + v.word + '</div><div class="review-def">' + v.definition + '</div></div>' +
+      '<div class="review-right"><span class="badge badge-repeat">×' + v.repeat + '</span>' +
+      '<button class="speak-btn" onclick="speak(\'' + safeWord + '\')">▶</button></div>' +
+      '</div>';
+  }
+  el.innerHTML = html;
 }
 
 function resetQuiz() {
   quizWord = null;
   document.getElementById('quiz-card').innerHTML =
-    '<div class="quiz-hint">按下開始，隨機抽一個單字測驗你</div>' +
+    '<div style="font-size:0.85rem;color:var(--ink-faint);font-family:\'DM Mono\',monospace">按下開始，隨機抽一個單字測驗你</div>' +
     '<button onclick="startQuiz()">開始測驗 Start Quiz</button>';
 }
 
 function startQuiz() {
   if (!vocab.length) return;
   var weighted = [];
-  vocab.forEach(function(v){ for(var i=0;i<v.repeat;i++) weighted.push(v); });
+  for (var i = 0; i < vocab.length; i++) {
+    for (var j = 0; j < vocab[i].repeat; j++) weighted.push(vocab[i]);
+  }
   quizWord = weighted[Math.floor(Math.random() * weighted.length)];
+  var safeWord = quizWord.word.replace(/'/g,"\\'");
   document.getElementById('quiz-card').innerHTML =
-    '<div class="quiz-hint">這個單字是什麼意思？</div>' +
+    '<div style="font-size:0.85rem;color:var(--ink-faint);font-family:\'DM Mono\',monospace">這個單字是什麼意思？</div>' +
     '<div class="quiz-word">' + quizWord.word + '</div>' +
-    '<button class="speak-btn" onclick="speak(\'' + quizWord.word.replace(/'/g,"\\'") + '\')">▶ 發音</button>' +
+    '<button class="speak-btn" onclick="speak(\'' + safeWord + '\')">▶ 發音</button>' +
     '<div class="quiz-answer" id="quiz-answer">' +
       '<div class="field-label" style="margin-bottom:6px">中文解釋</div>' +
       '<div style="font-size:1rem;margin-bottom:10px">' + quizWord.definition + '</div>' +
-      (quizWord.example ? '<div class="field-label" style="margin-bottom:6px">例句</div><div style="font-family:\'Lora\',serif;font-style:italic;font-size:0.92rem;color:var(--ink-light)">' + quizWord.example + '</div>' : '') +
+      (quizWord.example ? '<div class="field-label" style="margin-bottom:6px">例句</div>' +
+        '<div style="font-family:\'Lora\',serif;font-style:italic;font-size:0.92rem;color:var(--ink-light)">' + quizWord.example + '</div>' : '') +
     '</div>' +
     '<div class="quiz-controls">' +
       '<button style="background:transparent;border-color:var(--border);color:var(--ink)" onclick="document.getElementById(\'quiz-answer\').style.display=\'block\'">顯示答案</button>' +
@@ -276,13 +288,56 @@ function startQuiz() {
     '</div>';
 }
 
+// ── 校正邏輯 ──────────────────────────────────────────────
+// 只有在輸入與單字有1-2個字母差異（漏字、多字、打錯）才算校正
+// 完全符合 → 直接配對，不顯示「已校正」
+// 差距過大（>2）→ 視為新單字
 function levenshtein(a, b) {
-  var m=a.length, n=b.length;
-  var dp=[];
-  for(var i=0;i<=m;i++){ dp[i]=[]; for(var j=0;j<=n;j++) dp[i][j]=i===0?j:j===0?i:0; }
-  for(var i=1;i<=m;i++) for(var j=1;j<=n;j++)
-    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  var m = a.length, n = b.length;
+  var dp = [];
+  for (var i = 0; i <= m; i++) {
+    dp[i] = [];
+    for (var j = 0; j <= n; j++) {
+      dp[i][j] = i === 0 ? j : j === 0 ? i : 0;
+    }
+  }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      if (a[i-1] === b[j-1]) dp[i][j] = dp[i-1][j-1];
+      else dp[i][j] = 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
   return dp[m][n];
+}
+
+function findMatch(input) {
+  var inpL = input.toLowerCase().trim();
+  var inpLen = inpL.length;
+
+  // 1. 完全符合 → 最優先
+  for (var i = 0; i < vocab.length; i++) {
+    if (vocab[i].word.toLowerCase() === inpL) {
+      return { vocab: vocab[i], corrected: false };
+    }
+  }
+
+  // 2. 模糊比對：閾值根據字長決定
+  // 短字（<=4字母）：只允許差1個
+  // 中等字（5-7字母）：允許差1個
+  // 長字（>=8字母）：允許差2個（處理漏打一個字母如 inclintion）
+  var maxDist = inpLen >= 8 ? 2 : 1;
+
+  var best = null, bestDist = 999;
+  for (var i = 0; i < vocab.length; i++) {
+    var d = levenshtein(inpL, vocab[i].word.toLowerCase());
+    if (d < bestDist) { bestDist = d; best = vocab[i]; }
+  }
+
+  if (best && bestDist > 0 && bestDist <= maxDist) {
+    return { vocab: best, corrected: true };
+  }
+
+  return null;
 }
 
 function doBatchCheck() {
@@ -290,43 +345,76 @@ function doBatchCheck() {
   var el = document.getElementById('batch-result');
   if (!raw.trim()) { el.innerHTML = ''; return; }
   if (!vocab.length) { el.innerHTML = '<div class="empty">資料尚未載入，請稍後再試</div>'; return; }
-  var inputs = raw.split(/[\n,\.;\/]+/).map(function(w){ return w.trim(); }).filter(function(w){ return w.length > 1; });
-  var found = [], notFound = [];
+
+  // 拆字：換行、逗號、句號、分號都當分隔符
+  var inputs = raw.split(/[\n,\.;]+/).map(function(w){ return w.trim(); }).filter(function(w){ return w.length > 1; });
+
+  var found = [];       // 完全符合
+  var corrected = [];   // 有拼錯但找到
+  var notFound = [];    // 找不到
+
   inputs.forEach(function(inp) {
-    var inpL = inp.toLowerCase();
-    var best = null, bestDist = 999;
-    vocab.forEach(function(v) {
-      var d = levenshtein(inpL, v.word.toLowerCase());
-      if (d < bestDist) { bestDist = d; best = v; }
-    });
-    var threshold = inpL.length > 4 ? 2 : 1;
-    if (bestDist <= threshold) found.push({input:inp, vocab:best, corrected:bestDist>0});
-    else notFound.push(inp);
+    var result = findMatch(inp);
+    if (!result) {
+      notFound.push(inp);
+    } else if (result.corrected) {
+      corrected.push({ input: inp, vocab: result.vocab });
+    } else {
+      found.push({ input: inp, vocab: result.vocab });
+    }
   });
+
   var html = '';
+
+  // 已記錄（完全符合）
   if (found.length) {
     html += '<div class="batch-section-title">✓ 你已記錄過（' + found.length + ' 個）</div>';
     found.forEach(function(f) {
+      var safeWord = f.vocab.word.replace(/'/g,"\\'");
       html += '<div class="batch-word-row batch-found">' +
-        '<div><span class="bw">' + f.vocab.word + '</span>' +
-        (f.corrected ? '<span style="font-size:0.72rem;color:var(--accent);margin-left:8px">已校正「' + f.input + '」</span>' : '') + '</div>' +
+        '<div class="bw">' + f.vocab.word + '</div>' +
         '<div class="bd">' + f.vocab.definition + '</div>' +
-        '<button class="speak-btn" style="flex-shrink:0" onclick="speak(\'' + f.vocab.word.replace(/'/g,"\\'") + '\')">▶</button>' +
+        '<button class="speak-btn" style="flex-shrink:0" onclick="speak(\'' + safeWord + '\')">▶</button>' +
         '</div>';
-      if (f.vocab.example) html += '<div style="font-size:0.8rem;font-style:italic;color:var(--ink-faint);padding:0 1rem 8px 1rem">' + f.vocab.example + '</div>';
+      if (f.vocab.example) {
+        html += '<div style="font-size:0.8rem;font-style:italic;color:var(--ink-faint);padding:0 1rem 8px 1.5rem">' + f.vocab.example + '</div>';
+      }
     });
   }
+
+  // 拼錯但已記錄
+  if (corrected.length) {
+    html += '<div class="batch-section-title" style="margin-top:1.5rem">✎ 拼字已校正，你有記錄過（' + corrected.length + ' 個）</div>';
+    corrected.forEach(function(f) {
+      var safeWord = f.vocab.word.replace(/'/g,"\\'");
+      html += '<div class="batch-word-row batch-typo">' +
+        '<div>' +
+          '<span class="bw">' + f.vocab.word + '</span>' +
+          '<span class="typo-arrow">← 你打的「' + f.input + '」</span>' +
+        '</div>' +
+        '<div class="bd">' + f.vocab.definition + '</div>' +
+        '<button class="speak-btn" style="flex-shrink:0" onclick="speak(\'' + safeWord + '\')">▶</button>' +
+        '</div>';
+      if (f.vocab.example) {
+        html += '<div style="font-size:0.8rem;font-style:italic;color:var(--ink-faint);padding:0 1rem 8px 1.5rem">' + f.vocab.example + '</div>';
+      }
+    });
+  }
+
+  // 尚未記錄
   if (notFound.length) {
     html += '<div class="batch-section-title" style="margin-top:1.5rem">★ 尚未記錄（' + notFound.length + ' 個）</div>';
     notFound.forEach(function(w) {
+      var safeW = w.replace(/'/g,"\\'");
       html += '<div class="batch-word-row batch-new">' +
         '<div class="bw">' + w + '</div>' +
         '<div class="bd" style="color:var(--ink-faint)">尚未在筆記中</div>' +
-        '<button style="font-size:0.75rem;padding:4px 10px;flex-shrink:0" onclick="prefillAdd(\'' + w.replace(/'/g,"\\'") + '\')">+ 新增</button>' +
+        '<button style="font-size:0.75rem;padding:4px 10px;flex-shrink:0" onclick="prefillAdd(\'' + safeW + '\')">+ 新增</button>' +
         '</div>';
     });
   }
-  el.innerHTML = html;
+
+  el.innerHTML = html || '<div class="empty">沒有找到任何單字</div>';
 }
 
 function prefillAdd(word) {
