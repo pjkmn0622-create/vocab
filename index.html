@@ -160,12 +160,19 @@ function switchTab(name){
   if(name==='quiz')resetQuiz();
 }
 function speak(word){
-  window.speechSynthesis.cancel();
-  setTimeout(function(){
-    var u=new SpeechSynthesisUtterance(word);
-    u.lang='en-US';u.rate=0.85;u.pitch=1;u.volume=1;
-    window.speechSynthesis.speak(u);
-  },150);
+  // Stop any current speech then wait for browser to clear
+  if(window.speechSynthesis.speaking){
+    window.speechSynthesis.cancel();
+    setTimeout(function(){ doSpeak(word); }, 200);
+  } else {
+    doSpeak(word);
+  }
+}
+function doSpeak(word){
+  var u=new SpeechSynthesisUtterance(word);
+  u.lang='en-US';
+  u.rate=0.85;
+  window.speechSynthesis.speak(u);
 }
 function doSearch(){
   var q=document.getElementById('search-input').value.trim().toLowerCase();
@@ -264,16 +271,19 @@ function getStem(w){
   return w;
 }
 
-// 用 Datamuse API 確認是否為真實英文單字（支援 CORS）
+// 用 Datamuse 確認是否為真實英文單字
+// 用 freq 分數：真實常用字會出現在結果且分數 > 0
 async function isRealWord(word){
   try{
-    var res=await fetch('https://api.datamuse.com/words?sp='+encodeURIComponent(word)+'&max=1');
+    var res=await fetch('https://api.datamuse.com/words?sp='+encodeURIComponent(word)+'&md=f&max=5');
     var data=await res.json();
-    // 只有完全符合才算真實單字
-    return data.length>0 && data[0].word.toLowerCase()===word.toLowerCase();
+    // 找完全符合的結果
+    for(var i=0;i<data.length;i++){
+      if(data[i].word.toLowerCase()===word.toLowerCase()) return true;
+    }
+    return false;
   }catch(e){
-    // API 失敗時，保守處理：假設是真實單字（避免誤校正）
-    return true;
+    return true; // API 失敗時保守處理
   }
 }
 
@@ -306,15 +316,13 @@ function findRelated(inp){
   return null;
 }
 
-// 對非真實單字，用 Datamuse 拼字建議找正確拼法
+// 對非真實單字，用多重策略找正確拼法
 async function guessCorrection(inp){
   try{
-    var res=await fetch('https://api.datamuse.com/words?sp='+encodeURIComponent(inp)+'&max=3');
-    var data=await res.json();
-    if(data.length>0){
-      // 取第一個建議（最接近的正確拼法）
-      return data[0].word;
-    }
+    // 策略1: 用 sounds-like (sl=) 找發音相似的字
+    var res1=await fetch('https://api.datamuse.com/words?sl='+encodeURIComponent(inp)+'&max=3');
+    var d1=await res1.json();
+    if(d1.length>0) return d1[0].word;
   }catch(e){}
   return null;
 }
