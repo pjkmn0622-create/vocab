@@ -476,9 +476,7 @@
 </div>
 
 <script>
-const SHEET_ID = '1JFbVa9qA7Z_mYfM0ON3Kgky4K5LNLJoSyX3UbDRq96c';
-const SHEET_NAME = 'Sheet1';
-const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+const API_URL = 'https://script.google.com/macros/s/AKfycbzm56Uj1d_SakjWR0rYT8wVMZQ5KCOlUESv5pPT9HuZ4y0Ap352jpC21HdhPZu0nFw/exec';
 
 let vocab = [];
 let quizWord = null;
@@ -487,20 +485,18 @@ let quizRevealed = false;
 async function loadVocab() {
   try {
     const res = await fetch(API_URL);
-    const text = await res.text();
-    const json = JSON.parse(text.substring(47, text.length - 2));
-    const rows = json.table.rows;
+    const rows = await res.json();
     vocab = rows.map(r => ({
-      word: r.c[0]?.v || '',
-      pos: r.c[1]?.v || '',
-      definition: r.c[2]?.v || '',
-      example: r.c[3]?.v || '',
-      repeat: parseInt(r.c[4]?.v) || 1,
+      word: String(r.word || '').trim(),
+      pos: String(r.pos || '').trim(),
+      definition: String(r.definition || '').trim(),
+      example: String(r.example || '').trim(),
+      repeat: parseInt(r.repeat) || 1,
     })).filter(r => r.word);
     updateStats();
     document.getElementById('word-count-header').textContent = vocab.length + ' words';
   } catch(e) {
-    document.getElementById('word-count-header').textContent = '載入失敗';
+    document.getElementById('word-count-header').textContent = '載入失敗，請重新整理';
     console.error(e);
   }
 }
