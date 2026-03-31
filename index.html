@@ -159,20 +159,41 @@ function switchTab(name){
   if(name==='review')renderReview();
   if(name==='quiz')resetQuiz();
 }
-function speak(word){
-  // Stop any current speech then wait for browser to clear
-  if(window.speechSynthesis.speaking){
-    window.speechSynthesis.cancel();
-    setTimeout(function(){ doSpeak(word); }, 200);
-  } else {
-    doSpeak(word);
+// 選出最好的英文聲音
+function getBestVoice(){
+  var voices = window.speechSynthesis.getVoices();
+  // 優先順序：Google > Microsoft > Samantha (macOS) > 其他 en-US
+  var preferred = [
+    'Google US English',
+    'Microsoft Aria Online (Natural) - English (United States)',
+    'Microsoft Guy Online (Natural) - English (United States)',
+    'Samantha',
+    'Alex',
+  ];
+  for(var i=0;i<preferred.length;i++){
+    for(var j=0;j<voices.length;j++){
+      if(voices[j].name===preferred[i]) return voices[j];
+    }
   }
+  // fallback: 任何 en-US
+  for(var j=0;j<voices.length;j++){
+    if(voices[j].lang==='en-US') return voices[j];
+  }
+  return null;
 }
-function doSpeak(word){
-  var u=new SpeechSynthesisUtterance(word);
-  u.lang='en-US';
-  u.rate=0.85;
-  window.speechSynthesis.speak(u);
+
+function speak(word){
+  window.speechSynthesis.cancel();
+  setTimeout(function(){
+    var u = new SpeechSynthesisUtterance(word);
+    u.lang = 'en-US';
+    u.rate = 0.82;
+    u.pitch = 1.0;
+    u.volume = 1.0;
+    var voice = getBestVoice();
+    if(voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  }, 100);
 }
 function doSearch(){
   var q=document.getElementById('search-input').value.trim().toLowerCase();
