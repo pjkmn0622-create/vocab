@@ -235,7 +235,7 @@ function doSearch(){
   var q=document.getElementById('search-input').value.trim().toLowerCase();
   var el=document.getElementById('search-result');
   if(!q){el.innerHTML='';return;}
-  var r=vocab.filter(function(v){return v.word.toLowerCase().includes(q);}||v.definition.includes(q));
+  var r=vocab.filter(function(v){return v.word.toLowerCase().includes(q)||v.definition.includes(q);});
   el.innerHTML=r.length?r.map(wordCardHTML).join(''):'<div class="empty">找不到「'+q+'」<br>可以到「新增」把它加進筆記</div>';
 }
 function wordCardHTML(v){
